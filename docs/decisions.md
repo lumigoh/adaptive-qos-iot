@@ -3,7 +3,10 @@
 Record durable engineering decisions here. Track tasks and status in GitHub Issues
 and the Project board. A proposal becomes agreed only after group discussion.
 
-## Agreed starting concept
+## Proposed starting decisions
+
+These are the current technical proposals for group review.
+They become agreed only after group discussion.
 
 The following records reflect the supplied project brief. They describe design
 agreements, not verified hardware behaviour.
