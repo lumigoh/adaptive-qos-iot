@@ -37,7 +37,7 @@ status into the documentation.
 
 ### Issues and board
 
-Create one repository-linked Project board with **Todo → In progress → Review → Done**.
+Create one repository-linked Project board with **Backlog → Ready → In Progress → Review → Done**.
 Use the board's Status field rather than duplicate status labels.
 
 Each issue needs a short purpose, one owner, a reviewer, dependencies, and an
