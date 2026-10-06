@@ -9,7 +9,7 @@ These are the current technical proposals for group review.
 They become agreed only after group discussion.
 
 The following records reflect the supplied project brief. They describe design
-agreements, not verified hardware behaviour.
+proposals, not verified hardware behaviour.
 
 | ID | Decision | Reason |
 |---|---|---|
