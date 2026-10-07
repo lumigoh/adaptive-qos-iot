@@ -1,7 +1,7 @@
 # Adaptive QoS for a Wireless IoT Network
 
 A three-person university project investigating whether gateway QoS can protect
-critical IoT messages under congestion.
+critical IoT messages under congestion. Report: https://docs.google.com/document/d/136MyeV2-TDr8ddHiX4-jOOZTiXmzx_QEbfMC_F8kdaE/edit?tab=t.0
 
 ## Current milestone
 
