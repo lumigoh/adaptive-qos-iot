@@ -1,0 +1,20 @@
+{
+  "name": "adaptive-qos-simulation",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node tests/simulation.test.js",
+    "test:ui": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "vite": "^7.2.2",
+    "@playwright/test": "^1.56.1"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}
