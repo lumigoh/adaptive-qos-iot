@@ -27,33 +27,6 @@ installed, the build and app need no internet, account, API, database, or backen
 Do not open `dist/index.html` directly with `file://`; use the local server.
 The static `dist/` directory can also be hosted later. No deployment is configured.
 
-## Serve the built app from a Python virtual environment
-
-Python can serve the production build using its standard library. The app still
-runs in your browser; a Python venv does not install Node/npm or replace the
-JavaScript build step. No Python packages or `pip install` are needed.
-
-From the repository root on Linux/macOS:
-
-```sh
-cd prototype
-python3 -m venv .venv
-source .venv/bin/activate
-npm ci
-npm run build
-python -m http.server 8000 --bind 127.0.0.1 --directory dist
-```
-
-On Windows PowerShell, use `py -m venv .venv` to create the environment and
-`.\.venv\Scripts\Activate.ps1` to activate it; the remaining commands are the same.
-Node/npm must already be installed and available on your PATH. If `dist/` was
-already built and the source has not changed, skip `npm ci` and `npm run build`.
-
-Open **http://localhost:8000** and keep the terminal running. Serve `dist/`, not
-`src/` or the repository root. This serves static files only; it adds no application
-backend. Stop the server with **Ctrl+C**, then run `deactivate` to leave the venv.
-Rebuild with `npm run build` after source changes before refreshing the browser.
-
 ## A short live demo
 
 1. Choose **Baseline**, then **Start**. Bulk is off; Critical and Normal remain responsive.
