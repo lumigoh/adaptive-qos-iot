@@ -986,3 +986,100 @@ footer span {
 .wifi {
   transform: none;
 }
+/* Playback changes the simulated clock; metric cards refresh independently. */
+.clock-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.clock-group > small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.playback {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.playback label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.playback select {
+  font: inherit;
+  font-size: 12px;
+  color: #edf2f4;
+  background: #1c2934;
+  border: 1px solid #536775;
+  border-radius: 6px;
+  padding: 6px;
+}
+.playback select:focus-visible {
+  outline: 3px solid #f1cf86;
+  outline-offset: 3px;
+}
+.recent-service {
+  margin-top: 10px;
+}
+.recent-service > small {
+  margin: 0 0 5px;
+  font-size: 10px;
+}
+#recent {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  height: 22px;
+}
+.recent-empty {
+  display: inline-flex;
+  width: 18px;
+  align-items: center;
+  justify-content: center;
+  color: #71838f;
+}
+@media (min-width: 801px) {
+  .controls {
+    gap: 18px;
+  }
+  .load {
+    min-width: 110px;
+  }
+  .recent-service .packet {
+    flex-basis: 18px;
+  }
+}
+@media (max-width: 1150px) and (min-width: 801px) {
+  .controls {
+    gap: 12px;
+  }
+  .offered > span {
+    font-size: 12px;
+  }
+  .buttons button {
+    padding-inline: 10px;
+  }
+  .playback select {
+    max-width: 120px;
+  }
+  .metric small {
+    font-size: 9px;
+  }
+}
+@media (max-width: 600px) {
+  .playback {
+    width: 100%;
+  }
+  .clock-group > small {
+    font-size: 9px;
+  }
+  .recent-service {
+    margin-top: 14px;
+  }
+}
+@media (min-width: 801px) and (max-height: 1000px) {
+  footer {
+    margin-top: 8px;
+  }
+}

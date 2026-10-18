@@ -45,6 +45,30 @@ show whether the current settings actually congest the link. Any load or policy
 change starts a fresh run, retaining running/paused status. Reset always stops.
 The screen remains stable when a browser tab is hidden; it does not catch up later.
 
+## Playback and readable metrics
+
+Use **1× Normal** (the default) to build congestion quickly, then choose
+**0.1× Slow motion** to follow the queues while explaining them. At 0.1×, ten
+real seconds advance one simulated second. Changing playback speed continues the
+same run; it does not change offered traffic, capacity, scheduling, or metric units.
+The selected speed stays selected across Reset, load changes, and scenario changes.
+The clock is explicitly labelled **Simulation time**.
+
+The five metric cards and receiver delivery count refresh together every **500 ms
+of active real time**, regardless of playback speed. Pause, Reset, scenario changes,
+and load changes refresh them immediately. The latency/throughput window remains
+**3 simulated seconds**; slow motion takes longer in real time to fill that window.
+Numbers are snapshots without additional numerical smoothing, so the metric-card
+backlog can briefly differ from the continuously updated live queue count.
+
+**In service** shows the actual current transmission. **Recently served**, below
+the receiver, briefly shows the latest completed packet in each class for 600 ms
+of active real time. Its three fixed slots capture even Critical packets that
+complete between display frames; there is no animation backlog. Those markers
+are completed transmissions, not packets still using link capacity. Pause freezes
+both the simulation and the recent markers; Reset clears them. Hidden-tab time
+is excluded, and returning to the page does not trigger catch-up.
+
 ## Architecture and scope
 
 ```text
@@ -64,7 +88,7 @@ for the real project; the following choices apply only to this prototype.
 
 | Choice        | Prototype value / meaning                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------------------- |
-| Clock         | Deterministic 10 ms fixed steps; approximately real-time display                                              |
+| Clock         | Deterministic 10 ms fixed steps; 1× or 0.1× playback; model step unchanged                                    |
 | Bottleneck    | 100 abstract kB/s in **every** scenario                                                                       |
 | Critical      | 10 messages/s, 1 kB each; triangle ▲                                                                          |
 | Normal        | 20 messages/s, 2 kB each; circle ●                                                                            |
