@@ -27,16 +27,16 @@ The receiver must eventually:
 
 Prefer Python's standard library for receiver code. Avoid unnecessary frameworks or databases.
 
-## Development approach
+## Development approach — software first
 
-Develop and verify the receiver independently before hardware integration.
+The NUC is not required for initial development. Build the **same receiver application** used later on the NUC, with a configurable bind address (`127.0.0.1` for local tests; the planned NUC address for physical integration).
 
-1. Inspect the repository and confirm the specified UDP protocol.
-2. **First coding milestone:** implement a minimal UDP listener that receives one correctly formatted message and returns its matching ACK.
-3. Verify this locally using a small UDP test client.
-4. Stop and report the implementation and test results.
+1. Inspect the repository and confirm the specified `Q1`/`A1` protocol.
+2. **First coding milestone:** implement a minimal Python UDP listener that receives one valid 128-byte Critical message and returns the matching **unpadded** ACK to its originating address/port.
+3. Verify on `127.0.0.1` with a small independent UDP test client; do not require the Pi, ESP32, or NUC to be online.
+4. Stop and report changes, actual local tests, and hardware checks still pending.
 
-Later milestones should add validation, duplicates, logging, run management, and `iperf3` integration.
+Later milestones: Routine 256-byte messages, strict validation, duplicate handling, CSV logging, run control, and local `iperf3` testing. Physical Ethernet routing, remote-client ACKs, and performance must be verified separately on hardware.
 
 ## Constraints
 
