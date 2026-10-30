@@ -29,11 +29,11 @@ Do not implement adaptive QoS or WMM extensions.
 
 Physical Pi access is limited. **Prepare scripts and checks now; apply and verify networking on the Pi later.** On hardware, validate basic connectivity **before** enabling traffic shaping.
 
-1. Inspect the repository and note which Pi OS, interface names, and networking services are **not yet confirmed**.
-2. **First coding milestone:** draft a minimal, reviewable AP/routing configuration or setup script with explicit assumptions, configurable interfaces, safe inspection steps, and a rollback procedure. Do not apply it to any live network.
-3. Check shell syntax and configuration logic where possible. If an isolated Linux VM/network namespace is available, use it for optional checks without touching the host's main networking.
-4. Stop and report verified checks versus untested Pi-specific behaviour.
-5. Later prepare separate FIFO/HTB QoS scenario scripts and counter-inspection commands, using the exact settings in `docs/testing.md`.
+1. Inspect the repository and record which Pi OS, interface names, and networking services are **not yet confirmed**. Do not select an AP/network-manager configuration based on guesses.
+2. **First coding milestone:** prepare a minimal, OS-independent `tc` scenario **inspection and configuration script** for the documented 5 Mbit/s FIFO treatment, with a configurable Ethernet interface, safe inspection commands, and a clear rollback procedure. **Do not apply it to a live network.**
+3. Check shell syntax and `tc` command construction; optionally test in a disposable Linux VM/network namespace, not on the host's active interface. Stop and explain what was actually verified.
+4. Later add the documented HTB/DSCP treatment and scenario switching using small, reviewable changes.
+5. **Only after inspecting the real Pi OS and networking services**, prepare the appropriate AP/routing configuration, then apply and verify connectivity on hardware before enabling QoS.
 
 When hardware access becomes available, verify the Pi OS/interface names, AP, IPv4 forwarding, NUC return route, and end-to-end connectivity first. Only then apply the 5 Mbit/s egress shaper and test DSCP class counters.
 
@@ -50,4 +50,4 @@ Keep changes understandable and reproducible. Avoid unnecessary dependencies, fr
 
 Work on the feature branch; do not automatically commit, push, or merge without my request.
 
-**Start by inspecting the repository and identifying the first safe AP setup step.**
+**Start by inspecting the repository and implementing only the first safe, OS-independent `tc` scripting milestone.**
