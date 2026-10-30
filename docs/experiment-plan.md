@@ -44,11 +44,14 @@ Summarise results per run before comparing repetitions.
 
 ## Decisions still needed
 
-- Message/acknowledgement format and CSV schemas.
-- Stable scenario identifiers and run identifiers.
-- Traffic rates/sizes, DSCP values, shaping rate, and queue policy/limits.
-- Warm-up, reply timeout/drain period, and invalid-run criteria.
-- Whether to use a predeclared experimental acknowledgement deadline.
+The ASCII UDP message and acknowledgement format (including ports, sequence numbers, and packet lengths) is specified in [architecture.md](architecture.md#udp-message-and-acknowledgement-protocol-v1). The 2000 ms ACK timeout is provisional until hardware pilots.
 
-Choose final settings using small pilot checks. These unresolved details do not
-need implementation during Stage 1.
+Still to finalise:
+
+- CSV column names, export procedures, and cross-device run setup.
+- Stable scenario names and the full run-ID naming convention (the protocol already defines allowed run-ID characters).
+- Traffic rates, DSCP verification, shaping rate, and queue policy/limits.
+- Warm-up, drain period, and invalid-run criteria.
+- Whether to use a separately predeclared deadline for timely acknowledgements.
+
+Check remaining settings using small hardware pilots before formal measurements.
