@@ -7,7 +7,7 @@ Build a small Wi-Fi IoT network and compare how a Raspberry Pi 5 gateway handles
 ```text
 ESP32 (Critical) ─┐
 ESP32 (Routine) ──┼── Wi-Fi ──> Raspberry Pi 5 ── Ethernet ──> Kubuntu NUC
-Laptop (Bulk) ────┘             AP / QoS gateway                Receiver / logger
+MacBook (Bulk) ───┘             AP / QoS gateway                Receiver / logger
                                (shaping on eth0 egress)
 ```
 
@@ -15,7 +15,7 @@ All three senders connect to the Pi's Wi-Fi access point (AP). The Pi **routes**
 
 **Why the separate receiver matters:** packets sent directly to a service on the Pi would not traverse its Ethernet egress queue, so they could not demonstrate the intended gateway bottleneck.
 
-The housemate's **Kubuntu NUC is the preferred wired receiver**, subject to availability. A macOS laptop with a USB-C Ethernet adapter is a viable substitute. A physical Ethernet cable is required between the Pi and receiver.
+**Lumi's housemate's Kubuntu NUC** is the planned wired receiver, subject to availability. The **MacBook** generates Bulk traffic over Wi-Fi and should not also act as the wired receiver during the same experiment. A physical Ethernet cable is required between the Pi and NUC.
 
 ## Components to implement
 
@@ -23,9 +23,9 @@ The housemate's **Kubuntu NUC is the preferred wired receiver**, subject to avai
 |---|---|---|
 | Critical traffic generator | ESP32 | Generate alert-like UDP messages, apply Critical marking, track sequence numbers and acknowledgements |
 | Routine traffic generator | ESP32 | Generate periodic telemetry UDP messages, apply Routine marking, track sequence numbers and acknowledgements |
-| Bulk traffic generator | Wi-Fi laptop | Generate configurable competing UDP traffic using `iperf3` |
+| Bulk traffic generator | MacBook (Wi-Fi) | Generate configurable competing UDP traffic using `iperf3` |
 | AP, router, and QoS gateway | Raspberry Pi 5 | Provide Wi-Fi access, route packets to Ethernet, create the controlled output bottleneck, select FIFO or classified QoS |
-| Receiver, ACKs, and logging | Separate Kubuntu NUC | Receive and identify ESP32 packets, send UDP acknowledgements, run the `iperf3` server, collect results |
+| Receiver, ACKs, and logging | Kubuntu NUC (Lumi's housemate) | Receive and identify ESP32 packets, send UDP acknowledgements, run the `iperf3` server, collect results |
 
 The two ESP32 roles may share one configurable firmware codebase; the two devices run different traffic profiles.
 
@@ -35,7 +35,7 @@ The two ESP32 roles may share one configurable firmware codebase; the two device
 
 | Network/interface | Proposed address | Purpose |
 |---|---|---|
-| Pi Wi-Fi AP (typically `wlan0`) | `192.168.50.1/24` | Gateway for ESP32 devices and Bulk laptop |
+| Pi Wi-Fi AP (typically `wlan0`) | `192.168.50.1/24` | Gateway for ESP32 devices and MacBook |
 | Wi-Fi clients | `192.168.50.0/24` (DHCP) | Send traffic to the wired receiver |
 | Pi Ethernet (typically `eth0`) | `192.168.60.1/24` | Routed output and QoS/shaping point |
 | Kubuntu NUC Ethernet | `192.168.60.2/24` | Receiver and test server |
@@ -55,7 +55,7 @@ The planned application path is:
 1. An ESP32 sends a UDP message to the NUC through the Pi.
 2. The NUC records the message identity and receipt, then replies with a UDP acknowledgement to the sender.
 3. The ESP32 matches the acknowledgement to the original sequence number and measures **round-trip time (RTT)** with its own monotonic clock.
-4. Independently, the laptop sends Bulk UDP traffic through the same Pi Ethernet output to the NUC's `iperf3` server.
+4. Independently, the MacBook sends Bulk UDP traffic through the same Pi Ethernet output to the NUC's `iperf3` server.
 
 **Proposed Differentiated Services Code Point (DSCP) markings:**
 
@@ -63,7 +63,7 @@ The planned application path is:
 |---|---|---|
 | Critical | `CS5` | ESP32 Critical |
 | Routine | `CS0` | ESP32 Routine |
-| Bulk | `CS1` | Laptop `iperf3`; explicitly configure the marking |
+| Bulk | `CS1` | MacBook `iperf3`; explicitly configure the marking |
 
 Keep these markings **unchanged across FIFO and classified-QoS scenarios** so the experiment changes gateway scheduling, not the senders' Wi-Fi treatment. The marks and their mapping to Linux `tc` classes must be verified with packet captures/counters.
 
@@ -94,7 +94,7 @@ The planned fixed-QoS approach uses Hierarchical Token Bucket (`HTB`) classes an
 
 1. **Connect the hardware:** Pi Ethernet to NUC; establish the two subnets, Wi-Fi AP, forwarding, return routing, and reachability.
 2. **Prove one message path:** ESP32 Critical → Pi → NUC → ACK → ESP32; verify the route and log a sequence number and RTT.
-3. **Add other sources:** Routine ESP32 and laptop `iperf3`; verify the receiver handles all streams.
+3. **Add other sources:** Routine ESP32 and MacBook `iperf3`; verify the receiver handles all streams.
 4. **Introduce the bottleneck:** verify the Pi Ethernet egress is the constrained link and collect queue/throughput evidence.
 5. **Compare FIFO vs classified QoS:** verify class counters, record measurements, and follow the repeat procedure in the experiment plan.
 
