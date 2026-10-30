@@ -1,0 +1,3 @@
+# Host test build output (not experiment data).
+tests/build/
+build/

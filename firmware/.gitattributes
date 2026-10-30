@@ -1,0 +1,3 @@
+# Keep firmware sources and the host-test Makefile LF on every platform so
+# `make` does not break on Windows checkouts (core.autocrlf=true is common).
+* text=auto eol=lf
