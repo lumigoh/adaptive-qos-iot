@@ -35,9 +35,9 @@ Physical ESP32 access is limited. Work alongside me in small, testable increment
 4. If the target model/toolchain is known and available, compile the firmware; otherwise record the pending compile check and a straightforward command to run later.
 5. Stop, explain the changes and test evidence, and wait for review.
 
-Later milestones: ACK matching/timeout logic with host tests, periodic profiles, sender logging, then device Wi-Fi/UDP integration. Hardware-only verification (Wi-Fi, TOS/DSCP, timing and actual RTT) remains pending until a device is available.
+Later milestones: ACK matching/timeout logic with host tests, periodic profiles, sender logging, then device Wi-Fi/UDP integration. **Do not implement an independent timed-run start/stop control protocol**; first coordinate the shared lifecycle and trigger described in `docs/testing.md`. Hardware-only verification (Wi-Fi, TOS/DSCP, timing and actual RTT) remains pending until a device is available.
 
-Keep host test doubles separate from production firmware and do not report simulated network behaviour as ESP32 hardware evidence.
+Keep host test doubles and synthetic outputs in test-specific/temporary paths, **never `results/<run_id>/`**. Do not report simulated network behaviour as ESP32 hardware evidence.
 
 Avoid unnecessary abstractions, dependencies, duplicate firmware, and unrelated changes. Keep Wi-Fi credentials out of Git.
 
