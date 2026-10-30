@@ -37,6 +37,8 @@ Apply both treatments to the **same Pi Ethernet egress interface** (expected `et
 | Bulk class | Not separately classified | `htb rate 3500kbit ceil 5mbit prio 2`; 60 KiB `bfifo` |
 | Classification | One shared queue, irrespective of DSCP | Classify `CS5` → Critical, `CS0` → Routine, `CS1` → Bulk; an explicit default class handles unmatched packets |
 
+**HTB class mapping:** parent class `1:1` (5 Mbit/s); `1:10` = Critical, `1:20` = Routine, `1:30` = Bulk. Use `1:20` as the explicit default for any unmatched traffic; unmatched packets must not silently bypass the configured egress shaper. On the expected IPv4 path, `tc flower` can match the DSCP portion of the TOS byte using `ip_tos 0xA0/0xFC` (Critical), `0x00/0xFC` (Routine), and `0x20/0xFC` (Bulk), so ECN bits do not affect the match. Verify supported syntax and counters on the Pi. The expected MacBook Bulk packets must match `1:30`, not fall back to Routine.
+
 In HTB, `rate` is a configured class allocation and `ceil` permits borrowing unused bandwidth; it is **not** a promise that each class continuously consumes its allocated rate. Lower `prio` values take precedence in HTB's borrowing decisions. With low sensor traffic, Bulk may use more than 3.5 Mbit/s when spare capacity exists.
 
 For an initial implementation, use `tbf` with a documented `burst` (starting target: 32 KiB) and `limit 102400` bytes for shared FIFO. For HTB, attach byte-limited `bfifo` leaves of **16384 / 24576 / 61440 bytes** respectively; document all parent/child burst, quantum, and queue settings actually used. These choices are **pilot-check targets**: `tbf` and `htb` differ internally, so matching nominal queue bytes does not make their behaviour identical. The experiment compares complete **FIFO and classified QoS treatments**, not an isolated scheduling algorithm.
@@ -163,3 +165,4 @@ results/
 - [iperf3 command options](https://software.es.net/iperf/invoking.html) — UDP, `-b`, `-l`, `-S`, `-O`, `-J`.
 - [Linux `tc-htb` manual](https://man7.org/linux/man-pages/man8/tc-htb.8.html) — class rates, ceilings, priorities and borrowing.
 - [Linux `tc-tbf` manual](https://man7.org/linux/man-pages/man8/tc-tbf.8.html) and [`tc-bfifo` manual](https://manpages.debian.org/trixie/iproute2/tc-bfifo.8.en.html) — shared FIFO shaping and byte-limited leaf queues.
+- [Linux `tc-flower` manual](https://man7.org/linux/man-pages/man8/tc-flower.8.html) — matching DSCP/TOS values using an explicit mask.
