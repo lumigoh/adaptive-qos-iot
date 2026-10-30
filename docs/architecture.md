@@ -128,7 +128,7 @@ Apply Linux `tc` on the **Pi Ethernet egress** (expected `eth0`). Use the same a
 - **Congested FIFO:** Bulk load on; common FIFO treatment at the same limit.
 - **Congested classified QoS:** same offered traffic and capacity; classify traffic into Critical, Routine, and Bulk classes.
 
-The planned fixed-QoS approach uses Hierarchical Token Bucket (`HTB`) classes and DSCP-based classification. Exact class rates, queue limits, traffic generation rates, run durations, counters, and comparison methodology belong in [the experiment plan](experiment-plan.md), not in this architecture file.
+The planned fixed-QoS approach uses Hierarchical Token Bucket (`HTB`) classes and DSCP-based classification. Exact class rates, queue limits, traffic generation rates, run durations, counters, and comparison methodology are specified in [the testing document](testing.md), not in this architecture file.
 
 **Scope limitation:** packets already crossed Wi-Fi before the Pi applies Ethernet-output QoS. Results can support a controlled gateway-QoS claim, **not** claims of Wi-Fi airtime priority, general emergency reliability, or implemented adaptive QoS. Wi-Fi Multimedia (`WMM`) requires separate investigation.
 
@@ -138,6 +138,6 @@ The planned fixed-QoS approach uses Hierarchical Token Bucket (`HTB`) classes an
 2. **Prove one message path:** ESP32 Critical → Pi → NUC → ACK → ESP32; verify the route and log a sequence number and RTT.
 3. **Add other sources:** Routine ESP32 and MacBook `iperf3`; verify the receiver handles all streams.
 4. **Introduce the bottleneck:** verify the Pi Ethernet egress is the constrained link and collect queue/throughput evidence.
-5. **Compare FIFO vs classified QoS:** verify class counters, record measurements, and follow the repeat procedure in the experiment plan.
+5. **Compare FIFO vs classified QoS:** verify class counters, record measurements, and follow the repeat procedure in [the testing document](testing.md).
 
 **Not yet verified:** AP capability/configuration on the chosen Pi OS, complete packet path, actual DSCP markings, achievable competing load, bottleneck location, or real QoS improvements. Record hardware findings rather than presenting planned behaviour as results.
