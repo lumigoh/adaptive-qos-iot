@@ -32,15 +32,15 @@ Inspect the Critical component's progress first.
 
 The two ESP32s should differ primarily in their traffic configuration.
 
-## Development approach
+## Development approach — software first
 
-Work incrementally, preserving existing functionality.
+Physical hardware access is limited. Work incrementally and preserve Critical behaviour.
 
-**First coding milestone:** demonstrate that the shared firmware produces a correctly formatted 256-byte Routine message.
+**First coding milestone:** add the Routine profile to the existing shared firmware and extend its **host-side packet tests** to verify `Q1` fields, ASCII space padding, and exactly 256 bytes. Do not build a second firmware application.
 
-Then stop and report what changed, what was verified, and what remains.
+If the shared firmware is not available yet, stop at a short list of required profile settings instead of creating competing code. If the board/toolchain is available, compile both profiles; otherwise note the outstanding compile check.
 
-Add periodic transmission and ACK/RTT handling in later increments.
+Stop after the first milestone, explaining the tests performed and what still needs hardware. Later milestones cover the 50 ms transmission schedule, ACK/RTT handling, logging, and physical Wi-Fi/DSCP verification. Keep local tests distinct from hardware results.
 
 Do not invent hardware test results or modify shared protocol specifications independently. Keep changes focused and do not automatically commit, push, or merge without my request.
 
