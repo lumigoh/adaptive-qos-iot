@@ -27,7 +27,8 @@
 #   -i IFACE  Ethernet egress interface (or set QOS_IFACE). There is
 #             deliberately no default: confirm the real name on the Pi first.
 #   -f        Allow apply/restore to replace or delete a root qdisc that this
-#             script did not create. Its settings are NOT saved or recreated.
+#             script cannot prove it owns (including a previous run's TBF).
+#             Its settings are NOT saved or recreated.
 #
 # Nothing here is persistent: a reboot also returns IFACE to the kernel default.
 
@@ -37,7 +38,7 @@ set -euo pipefail
 RATE="5mbit"       # tc rate units are SI: 5mbit = 5,000,000 bit/s
 TBF_BURST=32768    # bytes (32 KiB starting target)
 TBF_LIMIT=102400   # bytes (100 KiB nominal waiting budget)
-ROOT_HANDLE="1:"   # handle used for every root qdisc this script creates
+ROOT_HANDLE="1:"   # qdisc identifier, not ownership evidence
 
 PROG="${0##*/}"
 IFACE="${QOS_IFACE:-}"
@@ -80,25 +81,27 @@ require_root() {
     [[ "$(id -u)" == 0 ]] || die "'$1' changes the qdisc on $IFACE and must run as root (sudo)"
 }
 
-# Print "<kind> <handle>" of IFACE's root qdisc, e.g. "fq_codel 0:" or "tbf 1:".
-root_qdisc() {
-    tc qdisc show dev "$IFACE" | awk '$4 == "root" { print $2, $3; exit }'
-}
-
-# Refuse to touch a root qdisc that is neither the kernel default (handle 0:)
-# nor one this script created (handle 1:, a kind this script uses).
+# Inspect once, checking status before parsing. A handle identifies a qdisc,
+# not its owner. Even a TBF installed by an earlier invocation needs -f.
 check_ownership() {
-    local kind handle
-    read -r kind handle <<<"$(root_qdisc)"
-    echo "Current root qdisc on $IFACE: ${kind:-none} ${handle:-}"
-    case "$kind $handle" in
-        *" 0:" | "tbf 1:" | " ") return 0 ;;
-    esac
-    if [[ "$FORCE" == 1 ]]; then
-        echo "WARNING: -f given; replacing '$kind $handle', which this script did not create." >&2
+    local listing roots
+    listing="$(tc qdisc show dev "$IFACE")" || die "cannot inspect qdiscs on $IFACE; refusing changes"
+    roots="$(awk '$1 == "qdisc" && $4 == "root" { print $2, $3 }' <<<"$listing")"
+    [[ -n "$roots" && "$roots" != *$'\n'* ]] || die "expected exactly one root qdisc on $IFACE; refusing changes"
+    read -r ROOT_KIND ROOT_ID <<<"$roots"
+    echo "Current root qdisc on $IFACE: $ROOT_KIND $ROOT_ID"
+    # Nonzero child handles also indicate configuration we must preserve
+    # (for example a customised leaf beneath a default mq root).
+    DEFAULT_ROOT=0
+    if [[ "$ROOT_ID" == "0:" ]] && ! awk '$1 == "qdisc" && $3 != "0:" { found=1 } END { exit !found }' <<<"$listing"; then
+        DEFAULT_ROOT=1
         return 0
     fi
-    die "root qdisc '$kind $handle' on $IFACE was not created by this script, and restore cannot recreate it.
+    if [[ "$FORCE" == 1 ]]; then
+        echo "WARNING: -f given; changing existing qdisc configuration; its settings cannot be restored." >&2
+        return 0
+    fi
+    die "ownership of existing qdisc configuration on $IFACE is unknown; restore cannot recreate it.
   Save it first (tc -s -d qdisc show dev $IFACE), then rerun with -f if you really want to replace it."
 }
 
@@ -159,19 +162,17 @@ cmd_apply() {
     echo
     tc -s -d qdisc show dev "$IFACE"
     echo
-    echo "Roll back with: sudo $0 -i $IFACE restore   (or: sudo tc qdisc del dev $IFACE root)"
+    echo "Roll back with: sudo $0 -i $IFACE -f restore   (or: sudo tc qdisc del dev $IFACE root)"
 }
 
 cmd_restore() {
-    local kind handle
     require_live_iface
     require_root restore
-    read -r kind handle <<<"$(root_qdisc)"
-    if [[ "$handle" == "0:" || -z "$handle" ]]; then
-        echo "$IFACE already uses the kernel default root qdisc (${kind:-none}); nothing to restore."
+    check_ownership
+    if [[ "$DEFAULT_ROOT" == 1 ]]; then
+        echo "$IFACE already uses the kernel default root qdisc ($ROOT_KIND); nothing to restore."
         return 0
     fi
-    check_ownership
     run_tc qdisc del dev "$IFACE" root
     echo
     tc qdisc show dev "$IFACE"

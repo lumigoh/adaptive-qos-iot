@@ -29,14 +29,34 @@ IFACE="veth-eth"
 TMP="$(mktemp -d)"
 PASS=0
 FAIL=0
+PIDS=()
+NAMESPACES=()
+
+stop_processes() {
+    local pid
+    for pid in "${PIDS[@]}"; do
+        kill -TERM "$pid" 2>/dev/null || true
+    done
+    for pid in "${PIDS[@]}"; do
+        # timeout forwards TERM and escalates after its kill grace. Foreground
+        # mode lets it kill and reap iperf without killing itself in the group.
+        wait "$pid" 2>/dev/null || true
+    done
+    PIDS=()
+}
 
 cleanup() {
-    for ns in "$NS_CLI" "$NS_GW" "$NS_RX"; do
+    trap '' HUP INT TERM
+    stop_processes
+    for ns in "${NAMESPACES[@]}"; do
         ip netns del "$ns" 2>/dev/null || true
     done
     rm -rf "$TMP"
 }
 trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 ok()   { echo "PASS: $*"; PASS=$((PASS + 1)); }
 bad()  { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
@@ -54,6 +74,7 @@ root_of() { in_gw tc qdisc show dev "$IFACE" | awk '$4 == "root" { print $2, $3;
 
 [[ "$(id -u)" == 0 ]] || { echo "netns-test.sh must run as root (it creates namespaces)" >&2; exit 1; }
 command -v tc >/dev/null || { echo "tc not found (install iproute2)" >&2; exit 1; }
+command -v timeout >/dev/null || { echo "timeout not found (install coreutils)" >&2; exit 1; }
 
 # --- 1. plan mode: pure command construction, no namespace needed ----------
 
@@ -72,7 +93,10 @@ check_fails "unsafe interface name is rejected" "$SCRIPT" -i 'eth0;reboot' plan 
 
 # --- 2. build the disposable three-namespace topology ----------------------
 
-ip netns add "$NS_CLI"; ip netns add "$NS_GW"; ip netns add "$NS_RX"
+for ns in "$NS_CLI" "$NS_GW" "$NS_RX"; do
+    ip netns add "$ns"
+    NAMESPACES+=("$ns")
+done
 ip -n "$NS_CLI" link add veth-cli type veth peer name veth-wl netns "$NS_GW"
 ip -n "$NS_GW" link add veth-eth type veth peer name veth-rx netns "$NS_RX"
 ip -n "$NS_CLI" addr add 192.168.50.10/24 dev veth-cli
@@ -105,8 +129,9 @@ raw="$(in_gw tc -raw qdisc show dev "$IFACE")"
 check "tbf rate is 5Mbit"        grep -q 'rate 5Mbit' <<<"$raw"
 check "tbf burst is 32Kb"        grep -q 'burst 32Kb' <<<"$raw"
 check "tbf limit is 100Kb"       grep -q 'limit 100Kb' <<<"$raw"
-check "re-applying fifo is idempotent" gw_script apply fifo
-check "switching to baseline succeeds" gw_script apply baseline
+check_fails "re-applying fifo requires explicit force" gw_script apply fifo
+check "re-applying fifo with force succeeds" gw_script -f apply fifo
+check "switching to baseline with force succeeds" gw_script -f apply baseline
 check "after apply baseline, exactly one qdisc line on $IFACE" \
     test "$(in_gw tc qdisc show dev "$IFACE" | grep -c .)" == 1
 check "routed path still works through the shaper" \
@@ -114,20 +139,39 @@ check "routed path still works through the shaper" \
 
 # --- 5. optional: forwarded UDP is limited to ~5 Mbit/s ----------------------
 
-measure_udp() { # prints receiver-side Mbit/s for a 5 s, 8 Mbit/s UDP flow
-    ip netns exec "$NS_RX" iperf3 -s -1 -p 5201 >/dev/null 2>&1 &
+measure_udp() { # sets MEASURED in the parent shell so cleanup owns every PID
+    timeout --foreground -k 2s 15s ip netns exec "$NS_RX" iperf3 -s -1 -p 5201 >"$TMP/server.log" 2>&1 &
     local srv=$!
+    PIDS+=("$srv")
     sleep 0.5
-    ip netns exec "$NS_CLI" iperf3 -4 -c 192.168.60.2 -p 5201 -u -b 8M -l 1200 -t 5 -J \
-        >"$TMP/cli.json" 2>/dev/null || true
-    wait "$srv" || true
+    timeout --foreground -k 2s 12s ip netns exec "$NS_CLI" iperf3 -4 -c 192.168.60.2 -p 5201 -u -b 8M -l 1200 -t 5 -J \
+        >"$TMP/cli.json" 2>"$TMP/client.log" &
+    local client=$!
+    PIDS+=("$client")
+    if ! wait "$client"; then
+        PIDS=("$srv")
+        echo "FAIL: iperf3 client failed or timed out" >&2
+        cat "$TMP/client.log" "$TMP/cli.json" >&2
+        stop_processes
+        return 1
+    fi
+    # Keep only the unreaped server registered: never signal a reaped PID.
+    PIDS=("$srv")
+    if ! wait "$srv"; then
+        PIDS=()
+        echo "FAIL: iperf3 server failed or timed out" >&2
+        cat "$TMP/server.log" >&2
+        return 1
+    fi
+    PIDS=()
     # sum_received = receiver-side (rx namespace) UDP goodput reported back to the client.
-    python3 -c 'import json,sys; print("%.2f" % (json.load(open(sys.argv[1]))["end"]["sum_received"]["bits_per_second"]/1e6))' "$TMP/cli.json"
+    MEASURED="$(python3 -c 'import json,sys; print("%.2f" % (json.load(open(sys.argv[1]))["end"]["sum_received"]["bits_per_second"]/1e6))' "$TMP/cli.json")"
 }
 in_range() { python3 -c 'import sys; v,lo,hi=map(float,sys.argv[1:]); sys.exit(0 if lo<=v<=hi else 1)' "$@"; }
 
 if command -v iperf3 >/dev/null && command -v python3 >/dev/null; then
-    shaped="$(measure_udp)"
+    measure_udp
+    shaped="$MEASURED"
     echo "INFO: 8 Mbit/s offered UDP (1200 B payload), shaped receiver rate: $shaped Mbit/s"
     # 1200 B payload in a 1242 B Ethernet frame -> ~4.83 Mbit/s payload at a 5 Mbit/s cap.
     check "shaped UDP goodput is between 4.3 and 5.0 Mbit/s" in_range "$shaped" 4.3 5.0
@@ -140,7 +184,7 @@ fi
 
 # --- 6. ownership safety and restore ----------------------------------------
 
-check "restore removes the shaper" gw_script restore
+check "restore removes the shaper with explicit force" gw_script -f restore
 check "root qdisc is back to handle 0:" test "$(root_of | cut -d' ' -f2)" == "0:"
 
 in_gw tc qdisc add dev "$IFACE" root handle 5: pfifo limit 50
@@ -148,11 +192,22 @@ check_fails "apply refuses to replace a foreign root qdisc" gw_script apply fifo
 check "foreign root qdisc left untouched by refused apply" test "$(root_of)" == "pfifo 5:"
 check_fails "restore refuses to delete a foreign root qdisc" gw_script restore
 check "apply -f replaces a foreign root qdisc" in_gw "$SCRIPT" -i "$IFACE" -f apply fifo
-check "restore after -f returns to the default" gw_script restore
+check "restore after -f returns to the default" gw_script -f restore
 check "root qdisc is back to handle 0: at the end" test "$(root_of | cut -d' ' -f2)" == "0:"
 
+for rate in 2mbit 5mbit; do
+    in_gw tc qdisc add dev "$IFACE" root handle 1: tbf rate "$rate" burst 32768 limit 102400
+    before="$(in_gw tc -raw qdisc show dev "$IFACE")"
+    check_fails "apply refuses pre-existing tbf 1: at $rate" gw_script apply fifo
+    check_fails "restore refuses pre-existing tbf 1: at $rate" gw_script restore
+    check "refused operations preserve the entire TBF configuration" \
+        test "$(in_gw tc -raw qdisc show dev "$IFACE")" == "$before"
+    check "forced restore removes the conflicting TBF" gw_script -f restore
+done
+
 if command -v iperf3 >/dev/null && command -v python3 >/dev/null; then
-    unshaped="$(measure_udp)"
+    measure_udp
+    unshaped="$MEASURED"
     echo "INFO: same flow after restore (no shaper): $unshaped Mbit/s"
     check "after restore the flow is no longer capped near 5 Mbit/s" in_range "$unshaped" 6.5 9.0
 fi
