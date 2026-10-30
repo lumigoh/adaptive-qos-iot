@@ -29,14 +29,14 @@ The existing testing document contains starting commands. Validate their behavio
 
 Keep this component as simple as possible.
 
-1. Determine whether `iperf3` is installed and which version is available. If you cannot access the MacBook, provide commands for me to run.
-2. **First milestone:** prepare and verify a minimal UDP connectivity test to the NUC.
-3. Stop and review the result before introducing full experiment settings.
-4. Add a small shell script only if repeated commands justify it.
+1. Identify the `iperf3` version and installation method on the available development machine. If you cannot access it, give me concise commands to run.
+2. **First milestone:** start a local `iperf3` server and UDP client on `127.0.0.1`; check that a JSON result is produced. Do not require the Pi or NUC yet.
+3. Stop and review this local result before adding 8 Mbit/s, 1200-byte payloads, `-O 10`, run-specific output names, and CS1 marking.
+4. Add a small shell script only if repeated commands justify it. Later verify the real MacBook → Pi → NUC path and inspect DSCP packet markings on hardware.
 
 Do not introduce Python wrappers, dashboards, services, or elaborate automation without a demonstrated need.
 
-Do not assume setting TOS guarantees the packet retains its intended DSCP value; verify it using actual packet evidence.
+Do not assume setting TOS guarantees the packet retains its intended DSCP value; verify it using actual packet evidence **later**. Label local-loopback `iperf3` output as a software check, never an experiment result.
 
 Do not automatically commit or merge changes without my request.
 
