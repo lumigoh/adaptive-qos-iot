@@ -36,7 +36,7 @@ The NUC is not required for initial development. Build the **same receiver appli
 3. Verify on `127.0.0.1` with a small independent UDP test client; do not require the Pi, ESP32, or NUC to be online.
 4. Stop and report changes, actual local tests, and hardware checks still pending.
 
-Later milestones: Routine 256-byte messages, strict validation, duplicate handling, CSV logging, run control, and local `iperf3` testing. Physical Ethernet routing, remote-client ACKs, and performance must be verified separately on hardware.
+Later milestones: Routine 256-byte messages, strict validation, duplicate handling, CSV logging, coordinated run control, and local `iperf3` testing. **Do not invent a separate run-start protocol**: agree on the trigger/transport with the ESP32 and Bulk developers before implementing timed run control (see `docs/testing.md`). Physical Ethernet routing, remote-client ACKs, and performance must be verified separately on hardware.
 
 ## Constraints
 
@@ -44,7 +44,7 @@ Later milestones: Routine 256-byte messages, strict validation, duplicate handli
 - Do not infer sender-side loss from missing ACKs.
 - Do not calculate one-way delay by subtracting timestamps from different devices.
 - Do not change NUC networking or firewall settings without checking existing configuration and explaining potential disruption.
-- Keep raw results and never generate synthetic measurements presented as hardware evidence.
+- Store local/synthetic test output outside `results/<run_id>/`, which is reserved for hardware experiment data. Keep raw results and never present synthetic measurements as hardware evidence.
 
 Work incrementally on the feature branch. Explain each change and its verification. Do not automatically commit, push, or merge without my request.
 
