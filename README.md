@@ -34,7 +34,7 @@ These are **implementation components, not assigned owners**. Divide coding betw
 
 1. **Receiver:** implement the Python UDP/ACK server and test it with a localhost client using the real `Q1`/`A1` protocol.
 2. **ESP32 firmware:** implement one shared firmware codebase for Critical and Routine profiles; test packet/ACK logic on a host and compile for the selected board when its toolchain is known.
-3. **Pi gateway:** prepare reviewable AP/routing and FIFO/HTB QoS scripts without changing a live device; use static checks or an isolated Linux environment where feasible.
+3. **Pi gateway:** prepare OS-independent `tc` scenario scripts, inspection and rollback steps using configurable interfaces; defer OS-specific AP/routing configuration until the Pi OS and networking services are confirmed.
 4. **MacBook Bulk:** verify local `iperf3` client/server commands and JSON output before pointing them at the NUC.
 
 Suggested team split: **ESP32 firmware**, **Pi gateway**, and **NUC receiver + MacBook Bulk**. The [component kickoff prompts](docs/kickoff/) guide small, independently verifiable milestones.
