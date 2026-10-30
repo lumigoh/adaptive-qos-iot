@@ -1,7 +1,12 @@
 # Agent Instructions
 
-- Read README.md for project context and setup.
-- Consult docs/ for technical specifications and testing.
+- Read [`README.md`](README.md) for the project overview, components, and getting started.
+- Consult [`docs/`](docs/) for project documentation, including new files added later. Key references:
+  - [`docs/architecture.md`](docs/architecture.md) — topology, addressing, device roles, traffic markings, and the shared UDP/ACK protocol.
+  - [`docs/testing.md`](docs/testing.md) — traffic rates, QoS configurations, scenarios, metrics, logging, and experimental procedure.
+  - [`docs/kickoff/`](docs/kickoff/) — component-specific starting prompts: [Critical ESP32](docs/kickoff/esp32-critical.md), [Routine ESP32](docs/kickoff/esp32-routine.md), [MacBook Bulk](docs/kickoff/macbook-bulk.md), [Pi gateway](docs/kickoff/pi-gateway.md), and [NUC receiver](docs/kickoff/nuc-receiver.md). Read the relevant prompt when starting that component.
+- Use the architecture and testing documents as the technical specifications; kickoff prompts guide the initial implementation steps.
+- Make small, focused changes. Avoid unnecessary abstractions.
 - Keep changes compatible with other project components.
 - Explain changes and how to verify them.
 - Never claim hardware tests passed without actual evidence.
