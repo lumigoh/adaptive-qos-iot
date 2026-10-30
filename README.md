@@ -20,11 +20,11 @@ The primary experiment compares **Baseline**, **Congested FIFO**, and **Congeste
 
 | Component | Hardware | Work needed |
 |---|---|---|
-| Critical traffic generator | ESP32 | Send time-sensitive alert-style messages with identifiers and traffic markings; record acknowledgements and RTT. |
-| Routine traffic generator | ESP32 | Send periodic telemetry messages with identifiers and traffic markings; record acknowledgements and RTT. |
-| Bulk traffic generator | MacBook (Wi-Fi) | Run `iperf3` UDP traffic at a configurable rate to create competing load. |
-| QoS gateway and access point | Raspberry Pi 5 | Host the Wi-Fi network, route to Ethernet, configure a controlled `tc` bottleneck, and apply FIFO or classified QoS. |
-| Wired receiver, testing, and logging | Kubuntu NUC (Lumi's housemate) | Receive ESP32 messages, send acknowledgements, run the `iperf3` server, and collect experiment logs and results. |
+| [Critical traffic generator](docs/kickoff/esp32-critical.md) | ESP32 | Send time-sensitive alert-style messages with identifiers and traffic markings; record acknowledgements and RTT. |
+| [Routine traffic generator](docs/kickoff/esp32-routine.md) | ESP32 | Send periodic telemetry messages with identifiers and traffic markings; record acknowledgements and RTT. |
+| [Bulk traffic generator](docs/kickoff/macbook-bulk.md) | MacBook (Wi-Fi) | Run `iperf3` UDP traffic at a configurable rate to create competing load. |
+| [QoS gateway and access point](docs/kickoff/pi-gateway.md) | Raspberry Pi 5 | Host the Wi-Fi network, route to Ethernet, configure a controlled `tc` bottleneck, and apply FIFO or classified QoS. |
+| [Wired receiver, testing, and logging](docs/kickoff/nuc-receiver.md) | Kubuntu NUC (Lumi's housemate) | Receive ESP32 messages, send acknowledgements, run the `iperf3` server, and collect experiment logs and results. |
 
 These are **implementation components, not assigned owners**. Divide coding between teammates as convenient, then integrate and test the full system together. The gateway and receiver must be physically separate and connected by Ethernet for the gateway egress experiment.
 
@@ -46,8 +46,13 @@ See [`prototype/README.md`](prototype/README.md) for prerequisites, demo instruc
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — network topology, device roles, packet path, and interfaces.
-- [Testing specification](docs/testing.md) — traffic settings, scenarios, QoS queues, measurement definitions, and repeatable test procedure.
+Project documentation lives in [`docs/`](docs/), including any new references added later.
+
+- [Architecture](docs/architecture.md) — topology, addresses, device interfaces, and UDP message/ACK protocol.
+- [Testing specification](docs/testing.md) — traffic rates, QoS settings, scenarios, logging, and experiment procedure.
+- [Component kickoff prompts](docs/kickoff/) — small, step-by-step starting tasks for AI coding agents (also linked from the component table above).
+
+The architecture and testing documents define the shared technical specifications; kickoff prompts guide implementation.
 
 ## Collaboration
 
