@@ -48,7 +48,6 @@ See [`prototype/README.md`](prototype/README.md) for prerequisites, demo instruc
 
 - [Architecture](docs/architecture.md) — network topology, device roles, packet path, and interfaces.
 - [Testing specification](docs/testing.md) — traffic settings, scenarios, QoS queues, measurement definitions, and repeatable test procedure.
-- [Decision log](docs/decisions.md) — existing technical proposals; useful decisions will be folded into the relevant documents during cleanup.
 
 ## Collaboration
 
