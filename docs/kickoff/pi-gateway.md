@@ -25,15 +25,17 @@ Required capabilities:
 
 Do not implement adaptive QoS or WMM extensions.
 
-## Development approach
+## Development approach — software first
 
-**Prioritise working networking before traffic shaping.**
+Physical Pi access is limited. **Prepare scripts and checks now; apply and verify networking on the Pi later.** On hardware, validate basic connectivity **before** enabling traffic shaping.
 
-1. Inspect the repository and available information about the Pi's OS, interfaces, and existing network configuration.
-2. Identify anything requiring physical inspection. Do not pretend the agent has access to hardware unless it actually does.
-3. **First milestone:** establish or prepare the minimum safe Wi-Fi AP configuration.
-4. Explain and verify that milestone before progressing to Ethernet routing.
-5. Introduce FIFO shaping, classified QoS, and measurement scripts only after basic networking works.
+1. Inspect the repository and note which Pi OS, interface names, and networking services are **not yet confirmed**.
+2. **First coding milestone:** draft a minimal, reviewable AP/routing configuration or setup script with explicit assumptions, configurable interfaces, safe inspection steps, and a rollback procedure. Do not apply it to any live network.
+3. Check shell syntax and configuration logic where possible. If an isolated Linux VM/network namespace is available, use it for optional checks without touching the host's main networking.
+4. Stop and report verified checks versus untested Pi-specific behaviour.
+5. Later prepare separate FIFO/HTB QoS scenario scripts and counter-inspection commands, using the exact settings in `docs/testing.md`.
+
+When hardware access becomes available, verify the Pi OS/interface names, AP, IPv4 forwarding, NUC return route, and end-to-end connectivity first. Only then apply the 5 Mbit/s egress shaper and test DSCP class counters.
 
 ## Safety and verification
 
@@ -41,7 +43,7 @@ Do not implement adaptive QoS or WMM extensions.
 - Before any disruptive change, explain the expected effect, access risks, and recovery procedure.
 - Do not run connectivity-breaking commands without approval.
 - Preserve SSH access where possible.
-- Never claim routing, bandwidth limits, or classification work without actual evidence.
+- Distinguish static checks or disposable Linux tests from verified routing, bandwidth limits, or classification on the Pi.
 - Confirm DSCP classification through observed packet headers and `tc` counters.
 
 Keep changes understandable and reproducible. Avoid unnecessary dependencies, frameworks, or orchestration systems.
