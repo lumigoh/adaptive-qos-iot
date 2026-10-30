@@ -28,11 +28,25 @@ The primary experiment compares **Baseline**, **Congested FIFO**, and **Congeste
 
 These are **implementation components, not assigned owners**. Divide coding between teammates as convenient, then integrate and test the full system together. The gateway and receiver must be physically separate and connected by Ethernet for the gateway egress experiment.
 
+## Development approach — software first
+
+**Physical hardware access is limited.** Build and verify as much as possible locally before scheduling a hardware session:
+
+1. **Receiver:** implement the Python UDP/ACK server and test it with a localhost client using the real `Q1`/`A1` protocol.
+2. **ESP32 firmware:** implement one shared firmware codebase for Critical and Routine profiles; test packet/ACK logic on a host and compile for the selected board when its toolchain is known.
+3. **Pi gateway:** prepare OS-independent `tc` scenario scripts, inspection and rollback steps using configurable interfaces; defer OS-specific AP/routing configuration until the Pi OS and networking services are confirmed.
+4. **MacBook Bulk:** verify local `iperf3` client/server commands and JSON output before pointing them at the NUC.
+
+Suggested team split: **ESP32 firmware**, **Pi gateway**, and **NUC receiver + MacBook Bulk**. The [component kickoff prompts](docs/kickoff/) guide small, independently verifiable milestones.
+
+**Local tests are software checks, not hardware or QoS performance evidence.** On-device routing, Wi-Fi behaviour, packet markings, the egress bottleneck, and formal experiment results still require hardware pilots.
+
 ## Current status
 
 - **Presentation prototype:** a working interactive **simulation** in [`prototype/`](prototype/). It illustrates fixed QoS, but is not a hardware implementation or experimental evidence.
 - **Physical system:** end-to-end operation and QoS measurements have not yet been verified in the repository.
-- **Next milestone:** send a message from an ESP32 through the Pi to the wired receiver and receive an acknowledgement. Then introduce controlled congestion and compare FIFO with fixed QoS.
+- **Next milestone (software):** implement and locally test the UDP receiver/ACKs, shared ESP32 firmware, gateway configuration scripts, and Bulk commands.
+- **First hardware milestone (later):** verify ESP32 → Pi → NUC → ACK, then validate the controlled bottleneck and QoS scenarios.
 
 ### Run the presentation prototype
 

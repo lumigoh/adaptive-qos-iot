@@ -10,6 +10,18 @@ Only the **Pi's outbound Ethernet** is shaped. ACKs travel back from the NUC ove
 
 **Status:** These are the **selected implementation and experiment targets**, not measured or hardware-verified results. Complete the short pilot checks below, record any necessary changes, and **freeze settings before the 15 formal runs**. Never silently substitute simulation results for measurements.
 
+## Software-only preflight (before hardware access)
+
+Develop and check the components locally **before** the physical-network pilots:
+
+- **NUC receiver:** use a UDP client over `127.0.0.1` to test the real `Q1`/`A1` format, exact 128/256-byte payloads, invalid messages, duplicate sequences, ACK matching, and the receiver CSV schema.
+- **ESP32 firmware:** test shared packet generation/parsing, sequence numbers, ACK timeout/late-ACK handling, and Critical/Routine profile settings on a host where possible. Compile for the selected ESP32 board when the model/toolchain is available; record the distinction between host tests and target compilation.
+- **Pi gateway:** review scripts for the specified 5 Mbit/s FIFO and HTB configurations, DSCP filters, inspection and rollback commands. Optional disposable Linux namespace/VM tests can check syntax and queue behaviour without touching the real Pi.
+- **MacBook Bulk:** test `iperf3` UDP client/server locally and check that run-specific JSON is generated. Later confirm the installed Mac version and actual packet DSCP markings.
+- **Cross-component:** use clearly marked synthetic fixtures to exercise CSV joins by `(run_id, class, seq)` and basic calculation logic without reporting those numbers as experiment results.
+
+Store synthetic/local test output in `tests/fixtures/`, other clearly named test directories, or temporary directories; **never in `results/<run_id>/` formal data**. Software checks prove only the behaviour they directly test; they cannot establish Pi Wi-Fi AP operation, real routing, congestion at Ethernet egress, radio behaviour, effective DSCP treatment, or any QoS improvement. All of those require the hardware pilots below.
+
 ## Fixed traffic settings
 
 | Traffic | Source | Offered traffic | UDP payload | DSCP | Destination |
@@ -55,6 +67,19 @@ Before formal runs, verify the effective 5 Mbit/s cap, DSCP classifier hits for 
 
 The QoS scenario changes **both scheduling and queue admission** via its separate class queues. Do not attribute any improvement exclusively to scheduler priority.
 
+## Run coordination contract (before timed runs)
+
+The UDP `Q1`/`A1` protocol covers **sensor data and acknowledgements only**. **Do not independently invent run-control packets or APIs** for the ESP32s, NUC, and MacBook. Before building timed-run automation, the team must agree on a single simple command/trigger mechanism (for example, serial/CLI control or a documented shared trigger) and document how it reaches each component.
+
+Every implementation must support the same **logical run lifecycle**:
+
+1. **Prepare:** configure the same `run_id` and scenario on both ESP32 senders and the receiver; identify the Bulk output file and Pi treatment. The NUC receiver/logger must be ready before transmissions begin.
+2. **Start:** use the agreed trigger/procedure to begin a run. Each participant records its **actual local start time** and phase boundaries; do not assume clocks are synchronised or that commands arrive simultaneously.
+3. **Warm-up → measure:** run 10 seconds of warm-up followed by 60 seconds of measured traffic. Each ESP32 labels sent sequences `warmup` or `measure` using its own monotonic clock; the MacBook's `iperf3` warm-up and measured interval should be aligned by the agreed procedure.
+4. **Stop and drain:** stop new sends after the 60-second measurement interval. Keep the NUC receiver and ESP32 ACK listeners available for 2 additional seconds; record late completions, then save logs. An early stop/abort must be recorded as such.
+
+**Unresolved integration decision:** the trigger's **transport, initiator, and alignment/verification method**. Resolve them together, document the chosen procedure here, and test alignment in a pilot **before any formal timed run**. Initial one-packet and localhost tests do not need this control mechanism. If alignment cannot be demonstrated, do not treat runs as comparable.
+
 ## Run procedure
 
 Use **5 blocks × 3 scenarios = 15 runs**. Preselect and record the scenario order within each block to limit order effects; each scenario occurs once per block.
@@ -73,12 +98,12 @@ For **each run**:
 
 1. Apply the scenario's `tc` configuration; confirm the interface, rates, queues, filters, and DSCP classification. Start NUC logging and `iperf3` server **before** senders.
 2. Record run ID, scenario, block, devices/software versions, Git commit, relevant Wi-Fi settings, IPs, `tc` configuration, and sender traffic settings. Save the initial `tc` counters.
-3. Start both ESP32 senders and (for congested scenarios) the MacBook `iperf3` client. Use a coordinated start signal/procedure, and log **per-device warm-up/measurement boundaries**; do not assume manually started clocks are synchronised.
+3. Start both ESP32 senders and (for congested scenarios) the MacBook `iperf3` client. Use the agreed [run coordination contract](#run-coordination-contract-before-timed-runs), and log **per-device warm-up/measurement boundaries**; do not assume manually started clocks are synchronised.
 4. **Warm up for 10 seconds**, then collect a **60-second measurement interval** at the same traffic settings. Each ESP32 marks which emitted sequences belong to the measurement interval. Expected measured generation if no application sends are missed: **300 Critical** and **1200 Routine** packets per run.
 5. Stop generating new packets at the end of the measurement interval. Keep the receiver and ACK listener running for a **2-second drain period** to observe completions and late ACKs; save stop/end timestamps. Record the final `tc` counters and `iperf3` output.
 6. Preserve raw logs and settings in `results/<run_id>/`. Do not start the next run until the previous run's logs are safely saved and the gateway queue is cleared/reconfigured.
 
-If the components cannot start their 10 s/60 s phases reproducibly, **implement a simple shared start/phase trigger or another verifiable alignment method before formal testing**. Separate monotonic clocks are fine for per-ESP32 RTT, but do not use them as though they were synchronised.
+Do not start formal runs until the chosen trigger/procedure has demonstrated reproducible 10 s/60 s phase alignment in a pilot. Separate monotonic clocks are fine for per-ESP32 RTT, but do not use them as though they were synchronised.
 
 ### Bulk traffic commands (starting point)
 

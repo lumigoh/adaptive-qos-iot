@@ -26,21 +26,21 @@ The Routine ESP32 must eventually:
 
 Inspect the Critical component's progress first.
 
-- If the shared firmware is available, build directly on it.
-- If it is being developed on another branch, coordinate the shared interface before changing overlapping code.
-- If it is not ready, identify the configuration requirements and avoid creating competing firmware.
+- **Preferred:** wait until the Critical agent's shared firmware foundation has merged into `main`; then create `feat/esp32-routine` from that updated `main`.
+- **If working before that merge is necessary:** coordinate explicitly with the Critical agent and base the Routine branch on the shared-firmware branch, or collaborate on that same branch. Do not independently change overlapping files from an outdated `main`.
+- **If shared firmware is not yet implemented:** identify required Routine profile settings only; avoid creating a competing firmware base.
 
 The two ESP32s should differ primarily in their traffic configuration.
 
-## Development approach
+## Development approach — software first
 
-Work incrementally, preserving existing functionality.
+Physical hardware access is limited. Work incrementally and preserve Critical behaviour.
 
-**First coding milestone:** demonstrate that the shared firmware produces a correctly formatted 256-byte Routine message.
+**First coding milestone:** add the Routine profile to the existing shared firmware and extend its **host-side packet tests** to verify `Q1` fields, ASCII space padding, and exactly 256 bytes. Do not build a second firmware application.
 
-Then stop and report what changed, what was verified, and what remains.
+If the shared firmware is not available yet, stop at a short list of required profile settings instead of creating competing code. If the board/toolchain is available, compile both profiles; otherwise note the outstanding compile check.
 
-Add periodic transmission and ACK/RTT handling in later increments.
+Stop after the first milestone, explaining the tests performed and what still needs hardware. Keep generated host test output outside `results/<run_id>/`. Later milestones cover the 50 ms transmission schedule, ACK/RTT handling, logging, and physical Wi-Fi/DSCP verification. Keep local tests distinct from hardware results.
 
 Do not invent hardware test results or modify shared protocol specifications independently. Keep changes focused and do not automatically commit, push, or merge without my request.
 

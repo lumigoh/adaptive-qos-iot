@@ -25,15 +25,17 @@ Required capabilities:
 
 Do not implement adaptive QoS or WMM extensions.
 
-## Development approach
+## Development approach — software first
 
-**Prioritise working networking before traffic shaping.**
+Physical Pi access is limited. **Prepare scripts and checks now; apply and verify networking on the Pi later.** On hardware, validate basic connectivity **before** enabling traffic shaping.
 
-1. Inspect the repository and available information about the Pi's OS, interfaces, and existing network configuration.
-2. Identify anything requiring physical inspection. Do not pretend the agent has access to hardware unless it actually does.
-3. **First milestone:** establish or prepare the minimum safe Wi-Fi AP configuration.
-4. Explain and verify that milestone before progressing to Ethernet routing.
-5. Introduce FIFO shaping, classified QoS, and measurement scripts only after basic networking works.
+1. Inspect the repository and record which Pi OS, interface names, and networking services are **not yet confirmed**. Do not select an AP/network-manager configuration based on guesses.
+2. **First coding milestone:** prepare a minimal, OS-independent `tc` scenario **inspection and configuration script** for the documented 5 Mbit/s FIFO treatment, with a configurable Ethernet interface, safe inspection commands, and a clear rollback procedure. **Do not apply it to a live network.**
+3. Check shell syntax and `tc` command construction; optionally test in a disposable Linux VM/network namespace, not on the host's active interface. Stop and explain what was actually verified.
+4. Later add the documented HTB/DSCP treatment and scenario switching using small, reviewable changes.
+5. **Only after inspecting the real Pi OS and networking services**, prepare the appropriate AP/routing configuration, then apply and verify connectivity on hardware before enabling QoS.
+
+When hardware access becomes available, verify the Pi OS/interface names, AP, IPv4 forwarding, NUC return route, and end-to-end connectivity first. Only then apply the 5 Mbit/s egress shaper and test DSCP class counters.
 
 ## Safety and verification
 
@@ -41,11 +43,11 @@ Do not implement adaptive QoS or WMM extensions.
 - Before any disruptive change, explain the expected effect, access risks, and recovery procedure.
 - Do not run connectivity-breaking commands without approval.
 - Preserve SSH access where possible.
-- Never claim routing, bandwidth limits, or classification work without actual evidence.
+- Distinguish static checks or disposable Linux tests from verified routing, bandwidth limits, or classification on the Pi.
 - Confirm DSCP classification through observed packet headers and `tc` counters.
 
 Keep changes understandable and reproducible. Avoid unnecessary dependencies, frameworks, or orchestration systems.
 
 Work on the feature branch; do not automatically commit, push, or merge without my request.
 
-**Start by inspecting the repository and identifying the first safe AP setup step.**
+**Start by inspecting the repository and implementing only the first safe, OS-independent `tc` scripting milestone.**

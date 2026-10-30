@@ -25,18 +25,19 @@ The Critical ESP32 must eventually:
 
 Do not implement application-level retransmissions.
 
-## Development approach
+## Development approach — software first
 
-Work alongside me in small increments.
+Physical ESP32 access is limited. Work alongside me in small, testable increments; **do not wait for the device before developing protocol logic**.
 
-1. Inspect the repository and identify the ESP32 model/toolchain requirements. Do not assume either is already configured.
-2. Establish the smallest sensible shared firmware structure.
-3. **First coding milestone:** generate a correctly formatted 128-byte Critical message and verify its contents and size.
-4. Stop, explain the changes, and show how they were verified.
+1. Inspect the repository and identify what ESP32 model/toolchain information is known or missing. Avoid choosing a board-specific setup without evidence.
+2. Establish a minimal shared firmware structure so Critical and Routine use the same protocol/ACK logic and differ by configuration.
+3. **First coding milestone:** implement a `Q1` Critical packet formatter and a **host-side test** checking field contents, ASCII space padding, and exactly 128 bytes.
+4. If the target model/toolchain is known and available, compile the firmware; otherwise record the pending compile check and a straightforward command to run later.
+5. Stop, explain the changes and test evidence, and wait for review.
 
-Subsequent milestones will cover Wi-Fi, UDP transmission, acknowledgements, periodic generation, and logging.
+Later milestones: ACK matching/timeout logic with host tests, periodic profiles, sender logging, then device Wi-Fi/UDP integration. **Do not implement an independent timed-run start/stop control protocol**; first coordinate the shared lifecycle and trigger described in `docs/testing.md`. Hardware-only verification (Wi-Fi, TOS/DSCP, timing and actual RTT) remains pending until a device is available.
 
-If hardware access is unavailable, perform only supported local checks and give me the commands or steps needed for physical verification.
+Keep host test doubles and synthetic outputs in test-specific/temporary paths, **never `results/<run_id>/`**. Do not report simulated network behaviour as ESP32 hardware evidence.
 
 Avoid unnecessary abstractions, dependencies, duplicate firmware, and unrelated changes. Keep Wi-Fi credentials out of Git.
 
