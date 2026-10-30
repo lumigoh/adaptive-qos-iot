@@ -9,10 +9,10 @@ A three-person **31275 Mobile Networking** project investigating whether gateway
 ```text
 ESP32 (Critical) ─┐
 ESP32 (Routine) ──┼─ Wi-Fi → Raspberry Pi 5 AP/QoS gateway → Ethernet → wired receiver
-Laptop (Bulk) ────┘                                      (separate Pi 5 or Linux host)
+MacBook (Bulk) ───┘                                      (Kubuntu NUC receiver)
 ```
 
-The gateway Raspberry Pi routes Wi-Fi traffic to a **separate Ethernet-connected receiver** (ideally a second Raspberry Pi 5, or any suitable wired Linux computer). Linux `tc` will create a controlled bottleneck on the gateway's Ethernet output and apply traffic classification and scheduling. The laptop uses `iperf3` to generate competing traffic; the receiver runs the corresponding server, logs messages, and sends acknowledgements for round-trip time (RTT) measurements.
+The gateway Raspberry Pi routes Wi-Fi traffic to a **separate Ethernet-connected Kubuntu NUC borrowed from Lumi's housemate**. Linux `tc` will create a controlled bottleneck on the gateway's Ethernet output and apply traffic classification and scheduling. The MacBook connects over Wi-Fi and runs `iperf3` to generate competing traffic; the NUC runs the corresponding server, logs messages, and sends acknowledgements for round-trip time (RTT) measurements.
 
 The primary experiment compares **Baseline**, **Congested FIFO**, and **Congested classified QoS**. We first test fixed gateway QoS; adaptive control and Wi-Fi Multimedia (WMM) are possible later investigations. Results from the Ethernet-output bottleneck do **not** establish Wi-Fi airtime prioritisation.
 
@@ -22,9 +22,9 @@ The primary experiment compares **Baseline**, **Congested FIFO**, and **Congeste
 |---|---|---|
 | Critical traffic generator | ESP32 | Send time-sensitive alert-style messages with identifiers and traffic markings; record acknowledgements and RTT. |
 | Routine traffic generator | ESP32 | Send periodic telemetry messages with identifiers and traffic markings; record acknowledgements and RTT. |
-| Bulk traffic generator | Wi-Fi laptop | Run `iperf3` UDP traffic at a configurable rate to create competing load. |
+| Bulk traffic generator | MacBook (Wi-Fi) | Run `iperf3` UDP traffic at a configurable rate to create competing load. |
 | QoS gateway and access point | Raspberry Pi 5 | Host the Wi-Fi network, route to Ethernet, configure a controlled `tc` bottleneck, and apply FIFO or classified QoS. |
-| Wired receiver, testing, and logging | Separate Raspberry Pi 5 or wired Linux computer | Receive ESP32 messages, send acknowledgements, run the `iperf3` server, and collect experiment logs and results. |
+| Wired receiver, testing, and logging | Kubuntu NUC (Lumi's housemate) | Receive ESP32 messages, send acknowledgements, run the `iperf3` server, and collect experiment logs and results. |
 
 These are **implementation components, not assigned owners**. Divide coding between teammates as convenient, then integrate and test the full system together. The gateway and receiver must be physically separate and connected by Ethernet for the gateway egress experiment.
 
