@@ -134,10 +134,17 @@ The planned fixed-QoS approach uses Hierarchical Token Bucket (`HTB`) classes an
 
 ## Implementation order and evidence
 
-1. **Connect the hardware:** Pi Ethernet to NUC; establish the two subnets, Wi-Fi AP, forwarding, return routing, and reachability.
-2. **Prove one message path:** ESP32 Critical → Pi → NUC → ACK → ESP32; verify the route and log a sequence number and RTT.
-3. **Add other sources:** Routine ESP32 and MacBook `iperf3`; verify the receiver handles all streams.
-4. **Introduce the bottleneck:** verify the Pi Ethernet egress is the constrained link and collect queue/throughput evidence.
-5. **Compare FIFO vs classified QoS:** verify class counters, record measurements, and follow the repeat procedure in [the testing document](testing.md).
+**Software-first until hardware is available:**
 
+1. **Build the NUC receiver:** implement `Q1` parsing, `A1` responses and CSV logging; test valid/invalid packets, duplicates, and ACK matching with a **localhost** UDP client. Keep its bind address configurable for local testing versus the proposed NUC address.
+2. **Build shared ESP32 firmware:** make Critical and Routine selectable profiles; test packet lengths/format, sequence/ACK logic and timing on a development host where feasible. Compile for the actual ESP32 board when the board model and toolchain are known. Host tests do **not** verify ESP32 network operation or DSCP marks.
+3. **Prepare Pi scripts:** write repeatable AP/routing and FIFO/HTB QoS setup, inspection and rollback steps. Review commands and optionally check `tc` in an isolated Linux environment, **without applying networking changes to an uninspected Pi**.
+4. **Prepare MacBook Bulk traffic:** confirm `iperf3` commands and JSON output against a local server before trying the NUC; keep the real destination configurable.
+
+**Then validate on hardware:**
+
+5. Connect Pi Ethernet to NUC; verify the two subnets, Pi AP, forwarding, return routing and reachability. Prove **Critical ESP32 → Pi → NUC → ACK → ESP32** and repeat with Routine.
+6. Generate MacBook Bulk load and verify the Pi Ethernet egress bottleneck, DSCP markings and per-class counters. Complete hardware pilots, freeze settings, and run the comparisons in [the testing specification](testing.md).
+
+Test fixtures and locally generated logs must be clearly identified as **software tests**, not physical-network measurements.
 **Not yet verified:** AP capability/configuration on the chosen Pi OS, complete packet path, actual DSCP markings, achievable competing load, bottleneck location, or real QoS improvements. Record hardware findings rather than presenting planned behaviour as results.
