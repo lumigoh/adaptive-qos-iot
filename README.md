@@ -1,77 +1,53 @@
 # Adaptive QoS for a Wireless IoT Network
 
-A three-person university project investigating whether gateway QoS can protect
-critical IoT messages under congestion. Report: https://docs.google.com/document/d/136MyeV2-TDr8ddHiX4-jOOZTiXmzx_QEbfMC_F8kdaE/edit?tab=t.0
+A three-person **31275 Mobile Networking** project investigating whether gateway Quality of Service (QoS) can protect critical messages from Wi-Fi-connected Internet of Things (IoT) devices under congestion.
 
-## Current milestone
+[Group report](https://docs.google.com/document/d/136MyeV2-TDr8ddHiX4-jOOZTiXmzx_QEbfMC_F8kdaE/edit?tab=t.0)
 
-**Stage 1: review the shared project foundation.** The architecture is agreed at
-concept level; hardware operation and experiment results have not been verified.
+## System
 
 ```text
-ESP32 critical ─┐
-ESP32 normal ───┼─ Wi-Fi → Raspberry Pi AP/router → Ethernet → wired receiver
-Bulk laptop ────┘
+ESP32 A (Critical) ─┐
+ESP32 B (Normal) ───┼─ Wi-Fi → Raspberry Pi 5 AP/router → Ethernet → wired receiver
+Bulk laptop ────────┘
 ```
 
-Later, the Pi will create a controlled Ethernet output bottleneck and apply fixed
-QoS. Adaptive QoS follows only after fixed QoS works.
+The Raspberry Pi routes traffic to a separate wired receiver. Linux `tc` will create a controlled bottleneck on the Pi's Ethernet output and apply traffic classification and scheduling. The bulk laptop uses `iperf3` to generate competing traffic; the receiver logs messages and sends acknowledgements for round-trip time (RTT) measurements.
 
-The intended claim concerns gateway QoS for Wi-Fi-connected devices. It does not
-prove Wi-Fi airtime prioritisation; WMM is a separate later investigation.
+The primary experiment compares **Baseline**, **Congested FIFO**, and **Congested classified QoS**. We first test fixed gateway QoS; adaptive control and Wi-Fi Multimedia (WMM) are possible later investigations. Results from the Ethernet-output bottleneck do **not** establish Wi-Fi airtime prioritisation.
 
-## Shared technical knowledge
+## Components and responsibilities
 
-- [Architecture](docs/architecture.md): device roles, packet path, and scope.
-- [Experiment plan](docs/experiment-plan.md): comparisons, measurements, and open choices.
-- [Decision log](docs/decisions.md): agreed choices and their reasons.
+| Component | Focus |
+|---|---|
+| ESP32 devices — Person A | Generate Critical and Normal messages, set traffic markings, measure acknowledgements |
+| Raspberry Pi — Person B | Wi-Fi AP/router, Ethernet bottleneck, `tc` QoS configuration |
+| Wired receiver / testing — Person C | Receive and acknowledge messages, run `iperf3`, collect results |
 
-Create source directories when implementation begins. There is no runnable system
-or setup procedure yet.
+All three team members help integrate the devices, interpret results, and write the report.
+
+## Current status
+
+- **Presentation prototype:** a working interactive **simulation** in [`prototype/`](prototype/). It illustrates fixed QoS, but is not a hardware implementation or experimental evidence.
+- **Physical system:** end-to-end operation and QoS measurements have not yet been verified in the repository.
+- **Next milestone:** send a message from an ESP32 through the Pi to the wired receiver and receive an acknowledgement. Then introduce controlled congestion and compare FIFO with fixed QoS.
+
+### Run the presentation prototype
+
+```sh
+cd prototype
+npm ci
+npm run dev
+```
+
+See [`prototype/README.md`](prototype/README.md) for prerequisites, demo instructions, and validation details.
+
+## Documentation
+
+- [Architecture](docs/architecture.md) — network topology, device roles, packet path, and interfaces.
+- [Experiment plan](docs/experiment-plan.md) — scenarios, measurement approach, and settings to finalise.
+- [Decision log](docs/decisions.md) — existing technical proposals; useful decisions will be folded into the relevant documents during cleanup.
 
 ## Collaboration
 
-Use Markdown for durable technical knowledge, Issues for work, one GitHub Project
-board for status, and pull requests for integration. Do not copy task lists or board
-status into the documentation.
-
-### Issues and board
-
-Create one repository-linked Project board with **Backlog → Ready → In Progress → Review → Done**.
-Use the board's Status field rather than duplicate status labels.
-
-Each issue needs a short purpose, one owner, a reviewer, dependencies, and an
-observable completion check. Link evidence in the issue or pull request. Mark work
-Done after its completion check is met and any associated pull request is merged.
-
-### Branches and review
-
-- Start a short branch from current `main` for an issue, e.g. `docs/shared-foundation`.
-- Keep each pull request focused; link its issue and explain the change and evidence.
-- Ask one teammate to review technical decisions, interfaces, code, or configuration.
-- Keep typo reviews lightweight. Discuss architecture or interface changes together.
-- Let the group review and merge this foundation before starting implementation.
-
-### Responsibility without silos
-
-| Member | Primary focus | Cross-review focus |
-|---|---|---|
-| A | ESP32 / wireless traffic | Receiver message handling |
-| B | Pi / networking / QoS | Firmware markings and packet path |
-| C | Receiver / logging / analysis | Routing evidence and measurement validity |
-
-All three own the architecture, experiment interpretation, report, and presentation.
-Everyone should explain the complete packet path and participate in integration.
-
-Before coding, agree on the firmware toolchain, addresses/ports, message and
-acknowledgement format, traffic configuration, logging schema, and scenario names.
-Record decisions; avoid independently inventing incompatible interfaces.
-
-The final report may use Google Docs or Word. Choose one shared document later;
-use repository documentation and recorded results as its technical source.
-
-## Review checkpoint
-
-Read the three documents together, resolve or explicitly defer open choices, and
-set up the Issues/Project board. The next milestone is one ESP32 UDP message reaching
-the wired receiver through the Pi. Stop at this checkpoint before implementation.
+Work on individual component branches and merge working changes into `main`. Coordinate shared interfaces (addresses, ports, packet formats, acknowledgements, and traffic settings) before implementing incompatible assumptions. Keep setup, technical specifications, and testing instructions in the README or `docs/`.
