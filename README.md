@@ -45,7 +45,8 @@ Suggested team split: **ESP32 firmware**, **Pi gateway**, and **NUC receiver + M
 
 - **Presentation prototype:** a working interactive **simulation** in [`prototype/`](prototype/). It illustrates fixed QoS, but is not a hardware implementation or experimental evidence.
 - **Physical system:** end-to-end operation and QoS measurements have not yet been verified in the repository.
-- **Next milestone (software):** implement and locally test the UDP receiver/ACKs, shared ESP32 firmware, gateway configuration scripts, and Bulk commands.
+- **ESP32 senders (software):** shared firmware in [`firmware/`](firmware/) formats/parses `Q1`/`A1`, runs the warm-up/measure/drain lifecycle, matches ACKs and writes sender CSV. Host tests and localhost UDP runs pass; on-device Wi-Fi, DSCP marking and timing remain unverified.
+- **Next milestone (software):** implement and locally test the UDP receiver/ACKs, gateway configuration scripts, and Bulk commands.
 - **First hardware milestone (later):** verify ESP32 → Pi → NUC → ACK, then validate the controlled bottleneck and QoS scenarios.
 
 ### Run the presentation prototype

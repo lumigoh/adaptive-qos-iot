@@ -45,12 +45,20 @@ typedef struct {
 extern const qos_profile_t QOS_PROFILE_CRITICAL;
 extern const qos_profile_t QOS_PROFILE_ROUTINE;
 
+/* Identifiers carried by a Q1 data message and its A1 acknowledgement. */
+typedef struct {
+    char run_id[QOS_RUN_ID_MAX_LEN + 1];
+    qos_class_t traffic_class;
+    uint32_t sequence;
+} qos_ids_t;
+
 typedef enum {
     QOS_OK = 0,
     QOS_ERR_ARGUMENT,          /* NULL pointer or invalid profile            */
     QOS_ERR_RUN_ID,            /* run_id missing or violates the format      */
     QOS_ERR_SEQUENCE,          /* sequence must be a positive integer        */
-    QOS_ERR_BUFFER_TOO_SMALL   /* caller buffer cannot hold the payload      */
+    QOS_ERR_BUFFER_TOO_SMALL,  /* caller buffer cannot hold the payload      */
+    QOS_ERR_FORMAT             /* incoming bytes are not a valid A1 message  */
 } qos_status_t;
 
 /* Validates 1-24 characters from [A-Za-z0-9_-] (no other bytes allowed). */
@@ -75,5 +83,17 @@ qos_status_t qos_format_q1(const qos_profile_t *profile,
                            char *buffer,
                            size_t buffer_size,
                            size_t *out_len);
+
+/*
+ * Parses an unpadded A1 acknowledgement:
+ *
+ *     A1|<run_id>|<traffic_class>|<sequence>
+ *
+ * The input must consume exactly `len` bytes: no trailing spaces, NUL, CR or
+ * newline are accepted (docs/architecture.md says ACKs are unpadded). The
+ * caller is still responsible for checking that the identifiers match its own
+ * run/class and that the datagram came from the expected receiver endpoint.
+ */
+qos_status_t qos_parse_a1(const char *data, size_t len, qos_ids_t *out);
 
 #endif /* QOS_PROTOCOL_H */

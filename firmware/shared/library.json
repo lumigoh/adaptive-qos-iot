@@ -1,0 +1,8 @@
+{
+  "name": "qos_shared",
+  "version": "0.2.0",
+  "description": "Shared Q1/A1 protocol, sender lifecycle and UDP transport for the Adaptive QoS ESP32 senders",
+  "keywords": "qos, udp, esp32",
+  "frameworks": "*",
+  "platforms": "*"
+}

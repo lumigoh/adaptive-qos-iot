@@ -28,6 +28,12 @@ const qos_profile_t QOS_PROFILE_ROUTINE = {
     0x00u  /* TOS byte */
 };
 
+static int qos_run_id_char_ok(char c)
+{
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+           (c >= '0' && c <= '9') || c == '_' || c == '-';
+}
+
 static int qos_class_name_is_valid(const char *name)
 {
     size_t i;
@@ -57,6 +63,9 @@ static int qos_profile_is_valid(const qos_profile_t *profile)
         profile->payload_bytes > QOS_MAX_PAYLOAD_BYTES) {
         return 0;
     }
+    if (profile->interval_ms == 0u) {
+        return 0;
+    }
     return qos_class_name_is_valid(profile->class_name);
 }
 
@@ -68,13 +77,7 @@ qos_status_t qos_validate_run_id(const char *run_id)
         return QOS_ERR_RUN_ID;
     }
     for (i = 0; run_id[i] != '\0'; i++) {
-        char c = run_id[i];
-
-        if (i >= QOS_RUN_ID_MAX_LEN) {
-            return QOS_ERR_RUN_ID;
-        }
-        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-              (c >= '0' && c <= '9') || c == '_' || c == '-')) {
+        if (i >= QOS_RUN_ID_MAX_LEN || !qos_run_id_char_ok(run_id[i])) {
             return QOS_ERR_RUN_ID;
         }
     }
@@ -127,5 +130,104 @@ qos_status_t qos_format_q1(const qos_profile_t *profile,
     memset(buffer + core_len, ' ', profile->payload_bytes - core_len);
 
     *out_len = profile->payload_bytes;
+    return QOS_OK;
+}
+
+static int qos_class_from_name(const char *name, size_t len,
+                               qos_class_t *out)
+{
+    if (len == strlen("critical") && memcmp(name, "critical", len) == 0) {
+        *out = QOS_CLASS_CRITICAL;
+        return 1;
+    }
+    if (len == strlen("routine") && memcmp(name, "routine", len) == 0) {
+        *out = QOS_CLASS_ROUTINE;
+        return 1;
+    }
+    return 0;
+}
+
+qos_status_t qos_parse_a1(const char *data, size_t len, qos_ids_t *out)
+{
+    size_t pos;
+    size_t start;
+    size_t field_len;
+    size_t i;
+    uint32_t sequence = 0u;
+    size_t digits = 0u;
+
+    if (data == NULL || out == NULL) {
+        return QOS_ERR_ARGUMENT;
+    }
+    /* Shortest valid message: "A1|a|routine|1" (14 bytes). */
+    if (len < 14u) {
+        return QOS_ERR_FORMAT;
+    }
+    if (memcmp(data, QOS_A1_PREFIX "|", 3u) != 0) {
+        return QOS_ERR_FORMAT;
+    }
+
+    pos = 3u;
+
+    /* run_id */
+    start = pos;
+    while (pos < len && data[pos] != '|') {
+        pos++;
+    }
+    if (pos >= len) {
+        return QOS_ERR_FORMAT;
+    }
+    field_len = pos - start;
+    if (field_len == 0u || field_len > QOS_RUN_ID_MAX_LEN) {
+        return QOS_ERR_FORMAT;
+    }
+    for (i = 0u; i < field_len; i++) {
+        if (!qos_run_id_char_ok(data[start + i])) {
+            return QOS_ERR_FORMAT;
+        }
+        out->run_id[i] = data[start + i];
+    }
+    out->run_id[field_len] = '\0';
+    pos++;
+
+    /* traffic class */
+    start = pos;
+    while (pos < len && data[pos] != '|') {
+        pos++;
+    }
+    if (pos >= len) {
+        return QOS_ERR_FORMAT;
+    }
+    if (!qos_class_from_name(data + start, pos - start,
+                             &out->traffic_class)) {
+        return QOS_ERR_FORMAT;
+    }
+    pos++;
+
+    /* sequence: decimal digits, no sign, no overflow, non-zero */
+    start = pos;
+    if (start >= len) {
+        return QOS_ERR_FORMAT;
+    }
+    while (pos < len) {
+        char c = data[pos];
+
+        if (c < '0' || c > '9') {
+            return QOS_ERR_FORMAT;
+        }
+        if (digits >= 10u) {
+            return QOS_ERR_FORMAT;
+        }
+        if (sequence > (UINT32_MAX - (uint32_t)(c - '0')) / 10u) {
+            return QOS_ERR_FORMAT;
+        }
+        sequence = sequence * 10u + (uint32_t)(c - '0');
+        digits++;
+        pos++;
+    }
+    if (sequence == 0u) {
+        return QOS_ERR_FORMAT;
+    }
+    out->sequence = sequence;
     return QOS_OK;
 }
