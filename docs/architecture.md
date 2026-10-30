@@ -67,16 +67,58 @@ The planned application path is:
 
 Keep these markings **unchanged across FIFO and classified-QoS scenarios** so the experiment changes gateway scheduling, not the senders' Wi-Fi treatment. The marks and their mapping to Linux `tc` classes must be verified with packet captures/counters.
 
-**Shared packet contract — needs to be finalised before independent sender/receiver implementation:**
+### UDP message and acknowledgement protocol (v1)
 
-- Common UDP destination port for ESP32 messages; `iperf3` uses its own server port.
-- Message fields sufficient to identify **run ID, device/class, and sequence number**.
-- ACK fields sufficient to match exactly one sent message.
-- Packet encoding and exact payload sizes; timeout/retry behaviour; logging column names.
+This is the **shared implementation contract** for both ESP32 senders and the NUC receiver. It is a simple UDP/IPv4 ASCII protocol; the MacBook's `iperf3` traffic remains independent.
 
-The ESP32 sender, NUC receiver, and logger must agree on that contract. Do not assume separately developed formats will interoperate.
+| Setting | Value |
+|---|---|
+| NUC message destination | Proposed `192.168.60.2:5001` |
+| NUC Bulk `iperf3` server | UDP port `5201` |
+| ESP32 source port | Any local UDP port; reuse the same socket to receive ACKs |
+| Encoding | ASCII, fields separated by `|`; no trailing newline |
+| Critical data payload | Exactly **128 bytes**, including padding |
+| Routine data payload | Exactly **256 bytes**, including padding |
 
-RTT includes the return path; it must not be reported as measured one-way delay. A missing ACK is not, by itself, proof that the forward packet was lost.
+**Data message (ESP32 → NUC):**
+
+```text
+Q1|<run_id>|<traffic_class>|<sequence>
+Q1|r001|critical|42
+```
+
+- `Q1` means a version-1 data message.
+- `run_id` is shared by both senders and the receiver for one experiment run: 1–24 ASCII letters, digits, `_`, or `-` (for example `b01_fifo`).
+- `traffic_class` is exactly `critical` or `routine`. Each sender uses its configured class.
+- `sequence` is a positive decimal integer, starting at `1` and increasing by one for **each generated message per sender per run**. No sequence number is reused within that stream.
+- Append ASCII spaces (`0x20`) **after** the final field until the UDP payload is exactly 128 bytes for Critical or 256 bytes for Routine. Do not add a newline, NUL terminator, or extra fields. Only the sender pads; the receiver removes trailing padding spaces before parsing.
+- The format is intentionally text-based for easy debugging. It does not transmit a sender timestamp; RTT uses the sender's local clock.
+
+**Acknowledgement (NUC → originating ESP32):**
+
+```text
+A1|<run_id>|<traffic_class>|<sequence>
+A1|r001|critical|42
+```
+
+- `A1` identifies a version-1 ACK. Repeat the exact three identifiers from the accepted data packet.
+- ACK payloads are **unpadded ASCII**, with no newline.
+- Send the ACK from the NUC's UDP receiver socket (port `5001`) to the **source IP and UDP source port** of the received datagram.
+- Each ESP32 keeps its sending socket open for ACKs and accepts only ACKs matching its current run, class, and an issued sequence number. Validate the expected NUC endpoint as well.
+- The NUC acknowledges every valid packet, including duplicates; duplicates are recorded but counted only once in unique-delivery totals. Malformed packets are recorded/rejected without a normal ACK.
+
+**Timing, reliability, and counting:**
+
+- Send **once** per sequence number; there are **no application-level retransmissions**.
+- Record each send against the ESP32's **monotonic** timestamp. On matching ACK, calculate `RTT = ACK receive time - original send time`.
+- Start with a **provisional 2000 ms ACK timeout** to be assessed in hardware pilots. A timed-out message stays identifiable; if a matching ACK arrives later, record it as a **late ACK** rather than reclassifying the original timeout without a trace.
+- Sender log: run ID, class, sequence, send time, ACK/timeout/late status, RTT when available. NUC log: run ID, class, sequence, source endpoint, receipt time, and duplicate/parse status. Exact CSV column names and how logs are exported will be defined in the testing document.
+- **Delivery ratio:** count unique valid sequences recorded by the NUC against actual sender-generated sequences. **ACK success:** evaluate separately from receiver delivery. An unacknowledged message may have reached the NUC.
+- RTT includes the return path and is **not** a measured one-way delay. Never subtract timestamps from different, unsynchronised devices.
+
+**Interoperability check before integration:** generate one padded Critical message, verify its 128-byte length and parsed fields on the NUC, return the unpadded matching ACK, and observe one ESP32 RTT. Repeat with a 256-byte Routine message. Check a duplicate, an invalid packet, and a deliberately delayed ACK before formal measurements.
+
+The shared protocol is now specified for implementation; the proposed NUC IP address and provisional timeout still require physical verification.
 
 ## Bottleneck and QoS boundary
 
