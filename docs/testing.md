@@ -10,6 +10,18 @@ Only the **Pi's outbound Ethernet** is shaped. ACKs travel back from the NUC ove
 
 **Status:** These are the **selected implementation and experiment targets**, not measured or hardware-verified results. Complete the short pilot checks below, record any necessary changes, and **freeze settings before the 15 formal runs**. Never silently substitute simulation results for measurements.
 
+## Software-only preflight (before hardware access)
+
+Develop and check the components locally **before** the physical-network pilots:
+
+- **NUC receiver:** use a UDP client over `127.0.0.1` to test the real `Q1`/`A1` format, exact 128/256-byte payloads, invalid messages, duplicate sequences, ACK matching, and the receiver CSV schema.
+- **ESP32 firmware:** test shared packet generation/parsing, sequence numbers, ACK timeout/late-ACK handling, and Critical/Routine profile settings on a host where possible. Compile for the selected ESP32 board when the model/toolchain is available; record the distinction between host tests and target compilation.
+- **Pi gateway:** review scripts for the specified 5 Mbit/s FIFO and HTB configurations, DSCP filters, inspection and rollback commands. Optional disposable Linux namespace/VM tests can check syntax and queue behaviour without touching the real Pi.
+- **MacBook Bulk:** test `iperf3` UDP client/server locally and check that run-specific JSON is generated. Later confirm the installed Mac version and actual packet DSCP markings.
+- **Cross-component:** use clearly marked synthetic fixtures to exercise CSV joins by `(run_id, class, seq)` and basic calculation logic without reporting those numbers as experiment results.
+
+Keep synthetic/local test output **separate from `results/<run_id>/` formal data**. Software checks prove only the behaviour they directly test; they cannot establish Pi Wi-Fi AP operation, real routing, congestion at Ethernet egress, radio behaviour, effective DSCP treatment, or any QoS improvement. All of those require the hardware pilots below.
+
 ## Fixed traffic settings
 
 | Traffic | Source | Offered traffic | UDP payload | DSCP | Destination |
